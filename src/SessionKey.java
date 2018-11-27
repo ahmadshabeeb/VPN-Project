@@ -1,21 +1,13 @@
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 public class SessionKey {
     private SecretKey secretKey;
 
-    public SessionKey (int keyLength) throws NoSuchAlgorithmException {
-        KeyGenerator keyGen = null;
-
-        try {
-            keyGen = KeyGenerator.getInstance("AES");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-
+    public SessionKey (int keyLength) throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(keyLength);
         secretKey = keyGen.generateKey();
     }
@@ -29,8 +21,7 @@ public class SessionKey {
     }
 
     public String encodeKey() {
-        String StringKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
-        return StringKey;
+        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
     }
 
     private void decodeKey(String encodedKey) {
