@@ -16,7 +16,6 @@ public class SessionDecrypter {
     }
 
     CipherInputStream openCipherInputStream (InputStream input) throws Exception {
-        System.out.println(ivSpec.getIV().length);
         cipher.init(Cipher.DECRYPT_MODE, sessionKey.getSecretKey(), ivSpec);
         return new CipherInputStream(input, cipher);
     }
