@@ -13,8 +13,8 @@ public class VerifyCertificate {
         caPublicKey = caCer.getPublicKey();
         userCer = getCertificate(args[1]);
 
-        printSubjectDN("Subject DN for CA",caCer);
-        printSubjectDN("Subject DN for User", userCer);
+        printSubjectDN("Subject DN for CA:   ", caCer);
+        printSubjectDN("Subject DN for User: ", userCer);
 
         if(verifyCertificate(caCer, caPublicKey) && verifyCertificate(userCer, caPublicKey)) {
             System.out.println("PASS");
