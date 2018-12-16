@@ -1,8 +1,10 @@
+package tests;
+import network.HandshakeCrypto;
 import java.security.*;
 
 public class HandshakeCryptoTester {
-    static String PRIVATEKEYFILE = "C:\\Users\\Ahmad\\Desktop\\internet_security_project\\pems\\private-pkcs8.der";
-    static String CERTFILE = "C:\\Users\\Ahmad\\Desktop\\internet_security_project\\pems\\cert-pkcs1.pem";
+    static String PRIVATEKEYFILE =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server-private.der";
+    static String CERTFILE =        "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     static String PLAINTEXT = "Time flies like an arrow. Fruit flies like a banana.";
     static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
     

@@ -1,3 +1,5 @@
+package network;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
@@ -9,13 +11,13 @@ public class SessionDecrypter {
     private IvParameterSpec ivSpec;
     private Cipher cipher;
 
-    SessionDecrypter(String key, String iv) throws Exception{
+    public SessionDecrypter(String key, String iv) throws Exception{
         this.sessionKey = new SessionKey(key);
         this.ivSpec = new IvParameterSpec(Base64.getDecoder().decode(iv));
         cipher = Cipher.getInstance("AES/CTR/NoPadding");
     }
 
-    CipherInputStream openCipherInputStream (InputStream input) throws Exception {
+    public CipherInputStream openCipherInputStream (InputStream input) throws Exception {
         cipher.init(Cipher.DECRYPT_MODE, sessionKey.getSecretKey(), ivSpec);
         return new CipherInputStream(input, cipher);
     }

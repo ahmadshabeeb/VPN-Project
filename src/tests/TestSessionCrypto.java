@@ -1,3 +1,8 @@
+package tests;
+
+import network.SessionDecrypter;
+import network.SessionEncrypter;
+
 import java.io.*;
 import javax.crypto.*;
 

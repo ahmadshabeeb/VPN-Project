@@ -5,3 +5,11 @@ cipher
 plainoutput
 pems/*
 *.class
+ca.srl
+ca-private.pem
+client.csr
+client-private.der
+client-private.pem
+server.csr
+server-private.der
+server-private.pem

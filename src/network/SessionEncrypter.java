@@ -1,3 +1,5 @@
+package network;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
@@ -12,7 +14,7 @@ public class SessionEncrypter {
     private byte[] iv;
     private IvParameterSpec ivParameterSpec;
 
-    SessionEncrypter(Integer KeyLength) throws Exception {
+    public SessionEncrypter(Integer KeyLength) throws Exception {
         sessionKey = new SessionKey(KeyLength);
 
         cipher = Cipher.getInstance("AES/CTR/NoPadding");
@@ -22,15 +24,15 @@ public class SessionEncrypter {
         ivParameterSpec = new IvParameterSpec(iv);
     }
 
-    String encodeKey() {
+    public String encodeKey() {
         return sessionKey.encodeKey();
     }
 
-    String encodeIV() throws IOException {
+    public String encodeIV() throws IOException {
         return Base64.getEncoder().encodeToString(iv);
     }
 
-    CipherOutputStream openCipherOutputStream(OutputStream output) throws Exception {
+    public CipherOutputStream openCipherOutputStream(OutputStream output) throws Exception {
         cipher.init(Cipher.ENCRYPT_MODE, sessionKey.getSecretKey(), ivParameterSpec);
         return new CipherOutputStream(output,cipher);
     }

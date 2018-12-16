@@ -1,4 +1,6 @@
-import java.security.NoSuchAlgorithmException;
+package tests;
+
+import network.SessionKey;
 
 public class Main {
 
