@@ -14,8 +14,8 @@ public class SessionKey {
         secretKey = keyGen.generateKey();
     }
 
-    public SessionKey (String keyString) {
-        decodeKey(keyString);
+    public SessionKey (String encodedStringKey) {
+        decodeKey(encodedStringKey);
     }
 
     public SecretKey getSecretKey() {

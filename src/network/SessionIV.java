@@ -17,9 +17,9 @@ public class SessionIV {
         ivParameterSpec = new IvParameterSpec(iv);
     }
 
-    public SessionIV (String stringIV) {
-        iv = stringIV.getBytes();
-        decodeIV();
+    public SessionIV (String stringIV) throws Exception {
+        iv = Base64.getDecoder().decode(stringIV);
+        //decodeIV();
     }
 
     public IvParameterSpec getSessionIV() {

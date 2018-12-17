@@ -3,9 +3,9 @@ import network.HandshakeCrypto;
 import java.security.*;
 
 public class HandshakeCryptoTester {
-    static String PRIVATEKEYFILE =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server-private.der";
-    static String CERTFILE =        "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
-    static String PLAINTEXT = "Time flies like an arrow. Fruit flies like a banana.";
+    static String PRIVATEKEYFILE =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
+    static String CERTFILE =        "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client.pem";
+    static String PLAINTEXT = "+3P7Rlrik0o85phkwzqMJQ==";
     static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
     
     static public void main(String[] args) throws Exception {

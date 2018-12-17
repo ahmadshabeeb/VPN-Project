@@ -7,10 +7,13 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 public class ForwardClient
 {
+    static Integer KEYLENGTH = 128;
     private static final boolean ENABLE_LOGGING = true;
     public static final int DEFAULTSERVERPORT = 2206;
     public static final String DEFAULTSERVERHOST = "localhost";
@@ -22,16 +25,23 @@ public class ForwardClient
     private static final String SERVERTHELLO = "ServerHello";
     private static final String FORWARD = "Forward";
     private static final String SESSION = "Session";
+    private static final String SESSION_KEY = "SessionKey";
+    private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
 
     private static final String CLIENT_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client.pem";
     private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     private static final String CA_CERT_PATH     =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
+    private static final String CLIENT_PRIVATE_KEY =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
+
+    static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
 
     private static Arguments arguments;
     private static int serverPort;
     private static String serverHost;
+    private static SessionKey sessionKey;
+    private static SessionIV sessionIV;
 
     /**
      * Program entry point. Reads arguments and run
@@ -110,6 +120,24 @@ public class ForwardClient
             socket.close();
             throw new Error();
         }
+
+        // 12. get session parameters
+        PrivateKey clientPrivateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(CLIENT_PRIVATE_KEY);
+
+        // decode and decrypt session key
+        String encodedKeyString = sessionMessage.getParameter(SESSION_KEY);
+        byte[] encryptedKeyBytes = Base64.getDecoder().decode(encodedKeyString);
+        byte[] decryptedKeyBytes = HandshakeCrypto.decrypt(encryptedKeyBytes, clientPrivateKey);
+        String encodedSessionKey = new String(decryptedKeyBytes, ENCODING);
+        System.out.println("Sessionkey: " + encodedSessionKey);
+        sessionKey = new SessionKey(encodedSessionKey);
+
+        // decode and decrypt session IV
+        String encodedIvString = sessionMessage.getParameter(SESSION_IV);
+        byte[] encryptedIvBytes = Base64.getDecoder().decode(encodedIvString);
+        byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, clientPrivateKey);
+        String encodedSessionIV = new String(decryptedBytes, ENCODING);
+        System.out.println("SessionIV: " + encodedSessionIV);
 
         System.out.println("Client close handshake");
         socket.close();

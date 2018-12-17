@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 public class ForwardServer
 {
@@ -20,7 +20,7 @@ public class ForwardServer
     private static Arguments arguments;
 
     static Integer KEYLENGTH = 128;
-
+    static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
 
     private static final String MSGTYPE = "MessageType";
     private static final String CERTIFCATE = "Certificate";
@@ -32,8 +32,6 @@ public class ForwardServer
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
-    private static final String SERVER_HOST = "TargetHost";
-    private static final String SERVER_PORT = "TargetPort";
 
     private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     private static final String CA_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
@@ -48,7 +46,7 @@ public class ForwardServer
      * Do handshake negotiation with client to authenticate, learn 
      * target host/port, etc.
      */
-    private void doHandshake() throws UnknownHostException, IOException, Exception {
+    private void doHandshake() throws Exception {
         X509Certificate caCert = aCertificate.pathToCert(CA_CERT_PATH);
 
         Socket clientSocket = handshakeSocket.accept();
@@ -97,23 +95,26 @@ public class ForwardServer
 
         // 9. generate the session
         System.out.println("9. generate the session");
-        SessionIV sessionIV = new SessionIV();
+        PublicKey clientPublicKey = clientCert.getPublicKey();
+
+        // Encrypt and encode session key
         SessionKey sessionKey = new SessionKey(KEYLENGTH);
+        byte[] encryptedBytesKey = encryptSessionKey(sessionKey, clientPublicKey);
+        String encodedSessionKey = Base64.getEncoder().encodeToString(encryptedBytesKey);
+        //System.out.println("Key to send: " + encodedSessionKey);
 
-        String ivString = sessionIV.encodeIV();
-        String sessionKeyString = sessionKey.encodeKey();
-
-        // encrypt ivString and sessionKeyString
-        PrivateKey privateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(SERVER_PRIVATE_KEY);
-        String encryptedIV =  HandshakeCrypto.encrypt(ivString.getBytes(), privateKey).toString();
-        String encryptedSessionKey = HandshakeCrypto.encrypt(sessionKeyString.getBytes(), privateKey).toString();
+        // Encrypt and encode session IV
+        SessionIV sessionIV = new SessionIV();
+        byte[] encryptedBytesIV = encryptSessionIV(sessionIV, clientPublicKey);
+        String encodedSessionIV = Base64.getEncoder().encodeToString(encryptedBytesIV);
+        //System.out.println("IV to send: " + encodedSessionIV);
 
         // 10. send session msg
         System.out.println("10. send session msg");
         HandshakeMessage sessionMsg = new HandshakeMessage();
         sessionMsg.putParameter(MSGTYPE, SESSION );
-        sessionMsg.putParameter(SESSION_KEY, encryptedSessionKey);
-        sessionMsg.putParameter(SESSION_IV, encryptedIV);
+        sessionMsg.putParameter(SESSION_KEY, encodedSessionKey);
+        sessionMsg.putParameter(SESSION_IV, encodedSessionIV);
         sessionMsg.send(clientSocket);
 
         System.out.println("Server closing handshake with client");
@@ -138,6 +139,30 @@ public class ForwardServer
          */
         targetHost = Handshake.targetHost;
         targetPort = Handshake.targetPort;        
+    }
+
+    private byte[] encryptSessionKey(SessionKey sessionKey, PublicKey publicKey) throws Exception {
+        String sessionKeyString = sessionKey.encodeKey();
+        byte[] sessionKeyBytes = sessionKeyString.getBytes(ENCODING);
+        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionKeyBytes, publicKey);
+
+        System.out.println("sessionkey: " + sessionKeyString);
+        //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
+        //System.out.println("encrypted: " + encryptedSessionKey);
+
+        return encryptedBytes;
+    }
+
+    private byte[] encryptSessionIV(SessionIV sessionIV, PublicKey publicKey) throws Exception {
+        String sessionIvString = sessionIV.encodeIV();
+        byte[] sessionIvBytes = sessionIvString.getBytes(ENCODING);
+        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionIvBytes, publicKey);
+
+        System.out.println("sessionIV: " + sessionIvString);
+        //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
+        //System.out.println("encrypted: " + encryptedSessionKey);
+
+        return encryptedBytes;
     }
 
     /**
