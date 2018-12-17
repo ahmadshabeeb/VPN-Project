@@ -1,9 +1,6 @@
 *.iml
 .idea/*
 out/*
-cipher
-plainoutput
-pems/*
 *.class
 ca.srl
 ca-private.pem

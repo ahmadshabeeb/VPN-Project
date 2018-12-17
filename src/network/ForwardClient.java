@@ -1,20 +1,12 @@
-package client;
+package network;
 
- 
-import network.ForwardServerClientThread;
-import network.Handshake;
 import other.Arguments;
 
-import java.lang.AssertionError;
-import java.lang.IllegalArgumentException;
-import java.lang.Integer;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.io.IOException;
-import java.io.FileInputStream;
  
 public class ForwardClient
 {
