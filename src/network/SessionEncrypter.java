@@ -5,7 +5,6 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.SecureRandom;
 import java.util.Base64;
 
 public class SessionEncrypter {
@@ -16,12 +15,12 @@ public class SessionEncrypter {
 
     public SessionEncrypter(Integer KeyLength) throws Exception {
         sessionKey = new SessionKey(KeyLength);
+    }
 
-        cipher = Cipher.getInstance("AES/CTR/NoPadding");
-        SecureRandom randomSecureRandom = new SecureRandom();
-        iv = new byte[cipher.getBlockSize()];
-        randomSecureRandom.nextBytes(iv);
-        ivParameterSpec = new IvParameterSpec(iv);
+
+    public SessionEncrypter( SessionKey sessionKey, IvParameterSpec ivParameterSpec) {
+        this.sessionKey = sessionKey;
+        this.ivParameterSpec = ivParameterSpec;
     }
 
     public String encodeKey() {

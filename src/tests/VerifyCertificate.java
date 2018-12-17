@@ -49,7 +49,6 @@ public class VerifyCertificate {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return true;
     }
 }
