@@ -2,8 +2,8 @@
 .idea/*
 out/*
 *.class
-plaininputs
-lainoutputs
+plaininput
+lainoutput
 ca.srl
 ca-private.pem
 client.csr
