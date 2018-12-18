@@ -3,7 +3,7 @@ Creating a secured communication channel between client and server. The client a
 
 Once the connection is set up, a connection can be made to the vpn-client and the vpn-server so data can be transformed securely.
 
-![](https://github.com/5habeeb/VPN-Project/vpn.PNG)
+![vpn netwrok ](https://github.com/5habeeb/VPN-Project/blob/master/vpn.png)
 
 ###Run the program
 Run the forwardServer:
