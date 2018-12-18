@@ -13,10 +13,8 @@ public class SessionEncrypter {
     private byte[] iv;
     private IvParameterSpec ivParameterSpec;
 
-    public SessionEncrypter(Integer KeyLength) throws Exception {}
-
-
-    public SessionEncrypter( SessionKey sessionKey, SessionIV sessionIV) {
+    public SessionEncrypter( SessionKey sessionKey, SessionIV sessionIV) throws Exception{
+        this.cipher = Cipher.getInstance("AES/CTR/NoPadding");
         this.sessionKey = sessionKey;
         this.ivParameterSpec = sessionIV.getSessionIV();
     }

@@ -169,6 +169,7 @@ public class ForwardClient
         String encodedSessionKey = new String(decryptedKeyBytes, ENCODING);
         //System.out.println("Sessionkey: " + encodedSessionKey);
         sessionKey = new SessionKey(encodedSessionKey);
+        Handshake.sessionKey = sessionKey;
 
         // decode and decrypt session IV
         String encodedIvString = sessionMessage.getParameter(SESSION_IV);
@@ -176,6 +177,7 @@ public class ForwardClient
         byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, clientPrivateKey);
         String encodedSessionIV = new String(decryptedBytes, ENCODING);
         sessionIV = new SessionIV(encodedSessionIV);
+        Handshake.sessionIV = sessionIV;
         //System.out.println("SessionIV: " + encodedSessionIV);
 
         System.out.println("Client close handshake");

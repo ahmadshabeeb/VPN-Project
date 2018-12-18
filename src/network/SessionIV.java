@@ -24,7 +24,7 @@ public class SessionIV {
     }
 
     public IvParameterSpec getSessionIV() {
-        return ivParameterSpec;
+        return this.ivParameterSpec;
     }
 
     public String encodeIV() {

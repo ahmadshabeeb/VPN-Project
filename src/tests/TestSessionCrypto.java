@@ -2,9 +2,13 @@ package tests;
 
 import network.SessionDecrypter;
 import network.SessionEncrypter;
+import network.SessionIV;
+import network.SessionKey;
 
-import java.io.*;
-import javax.crypto.*;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 public class TestSessionCrypto  {
     static String PLAININPUT = "plaininput";
@@ -16,7 +20,9 @@ public class TestSessionCrypto  {
         int b;
         
         // Create encrypter instance for a given key length
-        SessionEncrypter sessionencrypter = new SessionEncrypter(KEYLENGTH);
+        SessionIV sessionIV = new SessionIV();
+        SessionKey sessionKey = new SessionKey(128);
+        SessionEncrypter sessionencrypter = new SessionEncrypter(sessionKey, sessionIV);
 
         // Attach output file to encrypter, and open input file
         try (
@@ -34,7 +40,7 @@ public class TestSessionCrypto  {
         // Now ciphertext is in cipher output file. Decrypt it back to plaintext.
         
         // Create decrypter instance using cipher parameters from encrypter  
-        SessionDecrypter sessiondecrypter = new SessionDecrypter(sessionencrypter.encodeKey(), sessionencrypter.encodeIV());
+        SessionDecrypter sessiondecrypter = new SessionDecrypter(sessionKey, sessionIV);
 
         // Attach input file to decrypter, and open output file
         try (

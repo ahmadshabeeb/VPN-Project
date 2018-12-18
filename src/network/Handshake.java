@@ -11,6 +11,9 @@ public class Handshake {
     public static String targetHost = "localhost";
     public static int targetPort = 6789;
 
+    public static SessionKey sessionKey;
+    public static SessionIV sessionIV;
+
     public static String getServerHost() {
         return serverHost;
     }

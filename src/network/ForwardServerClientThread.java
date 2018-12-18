@@ -20,6 +20,8 @@ public class ForwardServerClientThread extends Thread
     private int mServerPort;
     private String mServerHost;
 
+    private boolean server = false;
+
     /**
      * Creates a client thread for handling clients of NakovForwardServer.
      * A client socket should be connected and passed to this constructor.
@@ -67,6 +69,7 @@ public class ForwardServerClientThread extends Thread
                mClientSocket = mListenSocket.accept();
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
                Logger.log("Accepted from  " + mServerPort + " <--> " + mClientHostPort + "  started.");
+               server = true;
            }
            else {
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
@@ -92,15 +95,23 @@ public class ForwardServerClientThread extends Thread
 
            mServerHostPort = mServerHost + ":" + mServerPort;
            Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");
- 
+
+            ForwardThread clientForward;
+            ForwardThread serverForward;
            // Start forwarding of socket data between server and client
-           ForwardThread clientForward = new ForwardThread(this, clientIn, serverOut);
-           ForwardThread serverForward = new ForwardThread(this, serverIn, clientOut);
+            if(server) { // 1 - 0
+                clientForward = new ForwardThread(this, clientIn, serverOut, 1);
+                serverForward = new ForwardThread(this, serverIn, clientOut,0);
+            } else { // 0 - 1
+                clientForward = new ForwardThread(this, clientIn, serverOut, 0);
+                serverForward = new ForwardThread(this, serverIn, clientOut,1);
+            }
+
            mBothConnectionsAreAlive = true;
            clientForward.start();
            serverForward.start();
  
-        } catch (IOException ioe) {
+        } catch (Exception ioe) {
            ioe.printStackTrace();
         }
     }

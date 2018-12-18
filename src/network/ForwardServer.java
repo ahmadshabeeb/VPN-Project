@@ -39,8 +39,6 @@ public class ForwardServer
     private ServerSocket listenSocket;
     private String targetHost;
     private int targetPort;
-    private SessionKey sessionKey;
-    private SessionIV sessionIV;
     
     /**
      * Do handshake negotiation with client to authenticate, learn 
@@ -91,7 +89,7 @@ public class ForwardServer
 
         // setting the desired Target by the Client
         Handshake.targetHost = forwardMsg.getParameter(TARGET_HOST);
-        System.out.println("debug target host: " + Handshake.targetHost);
+        //System.out.println("debug target host: " + Handshake.targetHost);
         Handshake.targetPort =(Integer.parseInt(forwardMsg.getParameter(TARGET_PORT)));
 
         // 9. generate the session parameters
@@ -99,13 +97,16 @@ public class ForwardServer
         PublicKey clientPublicKey = clientCert.getPublicKey();
 
         // Encrypt and encode session key
-        sessionKey = new SessionKey(KEYLENGTH);
+        SessionKey sessionKey = new SessionKey(KEYLENGTH);
+        Handshake.sessionKey = sessionKey;
         byte[] encryptedBytesKey = encryptSessionKey(sessionKey, clientPublicKey);
         String encodedSessionKey = Base64.getEncoder().encodeToString(encryptedBytesKey);
         //System.out.println("Key to send: " + encodedSessionKey);
 
         // Encrypt and encode session IV
-        sessionIV = new SessionIV();
+        SessionIV sessionIV = new SessionIV();
+        Handshake.sessionIV = sessionIV;
+        System.out.println("debug: " + sessionIV);
         byte[] encryptedBytesIV = encryptSessionIV(sessionIV, clientPublicKey);
         String encodedSessionIV = Base64.getEncoder().encodeToString(encryptedBytesIV);
         //System.out.println("IV to send: " + encodedSessionIV);

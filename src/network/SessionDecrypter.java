@@ -4,17 +4,16 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.InputStream;
-import java.util.Base64;
 
 public class SessionDecrypter {
     private SessionKey sessionKey;
     private IvParameterSpec ivSpec;
     private Cipher cipher;
 
-    public SessionDecrypter(String key, String iv) throws Exception{
-        this.sessionKey = new SessionKey(key);
-        this.ivSpec = new IvParameterSpec(Base64.getDecoder().decode(iv));
-        cipher = Cipher.getInstance("AES/CTR/NoPadding");
+    public SessionDecrypter(SessionKey sessionKey, SessionIV sessionIV) throws Exception{
+        this.cipher = Cipher.getInstance("AES/CTR/NoPadding");
+        this.sessionKey = sessionKey;
+        this.ivSpec = sessionIV.getSessionIV();
     }
 
     public CipherInputStream openCipherInputStream (InputStream input) throws Exception {
