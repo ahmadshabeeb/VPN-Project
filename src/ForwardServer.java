@@ -1,12 +1,8 @@
-package network;
-
-import other.Arguments;
-import other.Logger;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -30,13 +26,17 @@ public class ForwardServer
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
-    private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
-    private static final String CA_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
+    private static final String CURRENT_DIRECTORY = "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\";
 
     private ServerSocket handshakeSocket;
     private ServerSocket listenSocket;
     private String targetHost;
     private int targetPort;
+
+    private static X509Certificate caX509Cert;
+    private static X509Certificate serverX509Cert;
+    private static PrivateKey privateKey;
+
 
     /**
      * Program entry point. Reads settings, starts check-alive thread and
@@ -49,6 +49,19 @@ public class ForwardServer
         arguments.setDefault("handshakeport", Integer.toString(DEFAULTSERVERPORT));
         arguments.setDefault("handshakehost", DEFAULTSERVERHOST);
         arguments.loadArguments(args);
+
+        // get and validate CA certificate
+        String caCert = arguments.get("cacert");
+        caX509Cert = aCertificate.pathToCert(CURRENT_DIRECTORY + caCert);
+        aCertificate.verifyCertificate(caX509Cert, caX509Cert.getPublicKey());
+
+        // get and validate CA certificate
+        String serverCert = arguments.get("usercert");
+        serverX509Cert = aCertificate.pathToCert(CURRENT_DIRECTORY + serverCert);
+        aCertificate.verifyCertificate(serverX509Cert, caX509Cert.getPublicKey());
+
+        String serverPrivateKey = arguments.get("key");
+        privateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(CURRENT_DIRECTORY + serverPrivateKey);
 
         ForwardServer srv = new ForwardServer();
         try {
@@ -94,8 +107,6 @@ public class ForwardServer
      * target host/port, etc.
      */
     private void doHandshake() throws Exception {
-        X509Certificate caCert = aCertificate.pathToCert(CA_CERT_PATH);
-
         Socket clientSocket = handshakeSocket.accept();
         String clientHostPort = clientSocket.getInetAddress().getHostAddress() + ": " + clientSocket.getPort();
         Logger.log("Incoming handshake connection from " + clientHostPort);
@@ -111,13 +122,13 @@ public class ForwardServer
         //System.out.println("3. verify certificate is signed by our CA");
         String clientCertString = clientHello.getParameter(CERTIFCATE);
         X509Certificate clientCert = aCertificate.stringToCert(clientCertString);
-        aCertificate.verifyCertificate(clientCert, caCert.getPublicKey());
+        aCertificate.verifyCertificate(clientCert, caX509Cert.getPublicKey());
 
         // 4. Send Server Hello
         //System.out.println("4. Send Server Hello");
         HandshakeMessage serverHello = new HandshakeMessage();
         serverHello.putParameter(MSGTYPE, SERVERTHELLO);
-        serverHello.putParameter(CERTIFCATE, aCertificate.encodeCert(aCertificate.pathToCert(SERVER_CERT_PATH)));
+        serverHello.putParameter(CERTIFCATE, aCertificate.encodeCert(serverX509Cert));
         serverHello.send(clientSocket);
 
         // 8. receive a Forward msg

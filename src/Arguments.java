@@ -1,4 +1,3 @@
-package other;
 import java.util.Properties;
 
 /**

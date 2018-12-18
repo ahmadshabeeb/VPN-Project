@@ -1,10 +1,3 @@
-package tests;
-
-import network.SessionDecrypter;
-import network.SessionEncrypter;
-import network.SessionIV;
-import network.SessionKey;
-
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import java.io.FileInputStream;

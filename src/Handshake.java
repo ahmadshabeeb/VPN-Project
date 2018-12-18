@@ -1,5 +1,3 @@
-package network;
-
 import java.security.PublicKey;
 
 public class Handshake {

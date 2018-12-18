@@ -1,6 +1,5 @@
-package tests;
-import network.HandshakeCrypto;
-import java.security.*;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 public class HandshakeCryptoTester {
     static String PRIVATEKEYFILE =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";

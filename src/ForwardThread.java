@@ -1,5 +1,3 @@
-package network;
-
 /**
  * ForwardThread handles the TCP forwarding between a socket input stream (source)
  * and a socket output stream (destination). It reads the input stream and forwards

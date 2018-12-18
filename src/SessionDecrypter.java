@@ -1,5 +1,3 @@
-package network;
-
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import java.io.InputStream;
