@@ -16,22 +16,14 @@ public class ForwardThread extends Thread
 {
 private static final int READ_BUFFER_SIZE = 8192;
 
-/**
- * CRYPTO_MODE
- * ENCRYPTION MODE = 0
- * DECRYPTION MODE = 1
- * */
-private int CRYPTO_MODE = -1;
-private int ENCRYPTION_MODE = 0;
-private int DECRYPTION_MODE = 1;
-private int vpnType = 0;
- 
-    InputStream mInputStream = null;
-    OutputStream mOutputStream = null;
-    ForwardServerClientThread mParent = null;
-
-    SessionEncrypter sessionEncrypter;
-    SessionDecrypter sessionDecrypter;
+    private int cryptoMode = -1;
+    private final int ENCRYPTION_MODE = 0;
+    private final int DECRYPTION_MODE = 1;
+    private InputStream mInputStream = null;
+    private OutputStream mOutputStream = null;
+    private ForwardServerClientThread mParent = null;
+    private SessionEncrypter sessionEncrypter;
+    private SessionDecrypter sessionDecrypter;
  
     /**
      * Creates a new traffic forward thread specifying its input stream,
@@ -41,7 +33,7 @@ private int vpnType = 0;
         mInputStream = aInputStream;
         mOutputStream = aOutputStream;
         mParent = aParent;
-        this.CRYPTO_MODE = cryptoMode;
+        this.cryptoMode = cryptoMode;
         this.sessionEncrypter = new SessionEncrypter(Handshake.sessionKey, Handshake.sessionIV);
         this.sessionDecrypter = new SessionDecrypter(Handshake.sessionKey, Handshake.sessionIV);
     }
@@ -56,31 +48,22 @@ private int vpnType = 0;
         byte[] buffer = new byte[READ_BUFFER_SIZE];
         try {
             while (true) {
-                //mOutputStream.write(buffer, 0, bytesRead);
-                if(CRYPTO_MODE == ENCRYPTION_MODE) {
+                if(cryptoMode == ENCRYPTION_MODE) {
                     System.out.println("ENCRYPTING");
                     int bytesRead = mInputStream.read(buffer);
-
-                    System.out.println(new String(buffer, "UTF-8"));
                     if (bytesRead == -1)
-                        break; // End of stream is reached --> exit the thread
-
+                        break;
                     CipherOutputStream cryptoout = this.sessionEncrypter.openCipherOutputStream(mOutputStream);
                     cryptoout.write(buffer, 0, bytesRead);
 
-                } else if (CRYPTO_MODE == DECRYPTION_MODE) {
+                } else if (cryptoMode == DECRYPTION_MODE) {
                     System.out.println("DECRYPTING");
                     CipherInputStream cryptoin = this.sessionDecrypter.openCipherInputStream(mInputStream);
-                    System.out.println(new String(buffer, "UTF-8"));
                     int bytesRead = cryptoin.read(buffer);
                     if (bytesRead == -1)
-                        break; // End of stream is reached --> exit the thread
+                        break;
                     mOutputStream.write(buffer, 0, bytesRead);
                 }
-                //mOutputStream.write(buffer, 0, bytesRead);
-//                while ((bytesRead = mInputStream.read()) != -1) {
-//                    mOutputStream.write(bytesRead);
-//                }
             }
         } catch (Exception e) {
             // Read/write failed --> connection is broken --> exit the thread

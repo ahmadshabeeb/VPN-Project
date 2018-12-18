@@ -20,7 +20,9 @@ public class ForwardServerClientThread extends Thread
     private int mServerPort;
     private String mServerHost;
 
-    private boolean server = false;
+    private boolean vpnServer = false;
+    private final int ENCRYPTION_MODE = 0;
+    private final int DECRYPTION_MODE = 1;
 
     /**
      * Creates a client thread for handling clients of NakovForwardServer.
@@ -42,7 +44,6 @@ public class ForwardServerClientThread extends Thread
     public ForwardServerClientThread(ServerSocket listensocket, String serverhost, int serverport) throws IOException
     {
         mListenSocket = listensocket;
-        //mServerHost =  listensocket.getInetAddress().getHostAddress();
         mServerPort = serverport;
         mServerHost = serverhost;
     }
@@ -65,13 +66,13 @@ public class ForwardServerClientThread extends Thread
         try {
  
             // Wait for incoming connection on listen socket, if there is one 
-           if (mListenSocket != null) {
+           if (mListenSocket != null) { // I am in vpn server
                mClientSocket = mListenSocket.accept();
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
                Logger.log("Accepted from  " + mServerPort + " <--> " + mClientHostPort + "  started.");
-               server = true;
+               vpnServer = true;
            }
-           else {
+           else { // I am in vpn client
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
            }
 
@@ -99,12 +100,12 @@ public class ForwardServerClientThread extends Thread
             ForwardThread clientForward;
             ForwardThread serverForward;
            // Start forwarding of socket data between server and client
-            if(server) { // 1 - 0
-                clientForward = new ForwardThread(this, clientIn, serverOut, 1);
-                serverForward = new ForwardThread(this, serverIn, clientOut,0);
-            } else { // 0 - 1
-                clientForward = new ForwardThread(this, clientIn, serverOut, 0);
-                serverForward = new ForwardThread(this, serverIn, clientOut,1);
+            if(vpnServer) {
+                clientForward = new ForwardThread(this, clientIn, serverOut, DECRYPTION_MODE);
+                serverForward = new ForwardThread(this, serverIn, clientOut, ENCRYPTION_MODE);
+            } else {
+                clientForward = new ForwardThread(this, clientIn, serverOut, ENCRYPTION_MODE);
+                serverForward = new ForwardThread(this, serverIn, clientOut, DECRYPTION_MODE);
             }
 
            mBothConnectionsAreAlive = true;

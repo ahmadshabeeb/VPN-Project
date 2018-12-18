@@ -23,7 +23,7 @@ public class SessionIV {
 
     }
 
-    public IvParameterSpec getSessionIV() {
+    public IvParameterSpec getSessionIvSpec() {
         return this.ivParameterSpec;
     }
 

@@ -18,7 +18,7 @@ public class ForwardClient
     public static final String DEFAULTSERVERHOST = "localhost";
     public static final String PROGRAMNAME = "ForwardClient";
 
-    private static final String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
+    private static final String ENCODING = "UTF-8";
     private static final String MSGTYPE = "MessageType";
     private static final String CERTIFCATE = "Certificate";
     private static final String CLIENTHELLO = "ClientHello";
@@ -30,16 +30,13 @@ public class ForwardClient
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
 
-    private static final String CLIENT_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client.pem";
-    private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
-    private static final String CA_CERT_PATH     =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
-    private static final String CLIENT_PRIVATE_KEY =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
+    private static final String CLIENT_CERT_PATH    =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client.pem";
+    private static final String CA_CERT_PATH        =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
+    private static final String CLIENT_PRIVATE_KEY  =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
 
     private static Arguments arguments;
     private static int serverPort;
     private static String serverHost;
-    private static SessionKey sessionKey;
-    private static SessionIV sessionIV;
 
     /**
      * Program entry point. Reads arguments and run
@@ -126,12 +123,7 @@ public class ForwardClient
         //System.out.println("5. receive a ServerHello");
         HandshakeMessage serverHello = new HandshakeMessage();
         serverHello.recv(socket);
-
-        if (!serverHello.getParameter(MSGTYPE).equals(SERVERTHELLO)) {
-            System.err.println("Received invalid handshake type! - connection is Terminated");
-            socket.close();
-            throw new Error();
-        }
+        Handshake.checkMsgType(serverHello, SERVERTHELLO);
 
         // 6. Verify server certificate is signed by our CA
         //System.out.println("6. Verify server certificate is signed by our CA");
@@ -145,19 +137,13 @@ public class ForwardClient
         forwardMessage.putParameter(MSGTYPE, FORWARD);
         forwardMessage.putParameter(TARGET_HOST, arguments.get("targethost"));
         forwardMessage.putParameter(TARGET_PORT, arguments.get("targetport"));
-        System.out.println("Target: " + arguments.get("targethost") +":"+ arguments.get("targetport"));
         forwardMessage.send(socket);
 
         // 11. receive session msg
         //System.out.println("11. receive session msg");
         HandshakeMessage sessionMessage = new HandshakeMessage();
         sessionMessage.recv(socket);
-
-        if (!sessionMessage.getParameter(MSGTYPE).equals(SESSION)) {
-            System.err.println("Received invalid handshake type! - connection is Terminated");
-            socket.close();
-            throw new Error();
-        }
+        Handshake.checkMsgType(sessionMessage, SESSION);
 
         // 12. get session parameters
         PrivateKey clientPrivateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(CLIENT_PRIVATE_KEY);
@@ -168,16 +154,14 @@ public class ForwardClient
         byte[] decryptedKeyBytes = HandshakeCrypto.decrypt(encryptedKeyBytes, clientPrivateKey);
         String encodedSessionKey = new String(decryptedKeyBytes, ENCODING);
         //System.out.println("Sessionkey: " + encodedSessionKey);
-        sessionKey = new SessionKey(encodedSessionKey);
-        Handshake.sessionKey = sessionKey;
+        Handshake.sessionKey = new SessionKey(encodedSessionKey);
 
         // decode and decrypt session IV
         String encodedIvString = sessionMessage.getParameter(SESSION_IV);
         byte[] encryptedIvBytes = Base64.getDecoder().decode(encodedIvString);
         byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, clientPrivateKey);
         String encodedSessionIV = new String(decryptedBytes, ENCODING);
-        sessionIV = new SessionIV(encodedSessionIV);
-        Handshake.sessionIV = sessionIV;
+        Handshake.sessionIV = new SessionIV(encodedSessionIV);
         //System.out.println("SessionIV: " + encodedSessionIV);
 
         System.out.println("Client close handshake");
@@ -195,8 +179,8 @@ public class ForwardClient
          */
         serverHost = Handshake.serverHost;
         serverPort = Handshake.serverPort;
-        log("ServerHost : serverPort --- " + serverHost + " : " + serverPort);
-        log("TargetHost : TargetPort --- " + Handshake.targetHost + " : " + Handshake.targetPort);
+        log("Server: " + serverHost + " : " + serverPort);
+        log("Target: " + Handshake.targetHost + " : " + Handshake.targetPort);
     }
 
     /*

@@ -1,5 +1,7 @@
 package network;
 
+import java.security.PublicKey;
+
 public class Handshake {
     /* Static data -- replace with handshake! */
 
@@ -14,27 +16,24 @@ public class Handshake {
     public static SessionKey sessionKey;
     public static SessionIV sessionIV;
 
-    public static String getServerHost() {
-        return serverHost;
+    public static void checkMsgType (HandshakeMessage msg, String msgType) {
+        if (!msg.getParameter("MessageType").equals(msgType)) {
+            System.err.println("Received invalid handshake message type! " + msg.getParameter("MessageType"));
+            throw new Error();
+        }
     }
 
-    public static int getServerPort() {
-        return serverPort;
+    public static byte[] encryptSessionKey(SessionKey sessionKey, PublicKey publicKey) throws Exception {
+        String sessionKeyString = sessionKey.encodeKey();
+        byte[] sessionKeyBytes = sessionKeyString.getBytes("UTF-8");
+        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionKeyBytes, publicKey);
+        return encryptedBytes;
     }
 
-    public static String getTargetHost() {
-        return targetHost;
-    }
-
-    public static void setTargetHost(String targetHost) {
-        Handshake.targetHost = targetHost;
-    }
-
-    public static int getTargetPort() {
-        return targetPort;
-    }
-
-    public static void setTargetPort(int targetPort) {
-        Handshake.targetPort = targetPort;
+    public static byte[] encryptSessionIV(SessionIV sessionIV, PublicKey publicKey) throws Exception {
+        String sessionIvString = sessionIV.encodeIV();
+        byte[] sessionIvBytes = sessionIvString.getBytes("UTF-8");
+        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionIvBytes, publicKey);
+        return encryptedBytes;
     }
 }

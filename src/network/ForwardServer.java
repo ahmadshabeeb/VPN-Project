@@ -20,7 +20,6 @@ public class ForwardServer
     private static Arguments arguments;
 
     private static final Integer KEYLENGTH = 128;
-    private static final String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
     private static final String MSGTYPE = "MessageType";
     private static final String CERTIFCATE = "Certificate";
     private static final String CLIENTHELLO = "ClientHello";
@@ -33,15 +32,65 @@ public class ForwardServer
     private static final String TARGET_PORT = "TargetPort";
     private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     private static final String CA_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
-    private static final String SERVER_PRIVATE_KEY =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server-private.der";
 
     private ServerSocket handshakeSocket;
     private ServerSocket listenSocket;
     private String targetHost;
     private int targetPort;
-    
+
     /**
-     * Do handshake negotiation with client to authenticate, learn 
+     * Program entry point. Reads settings, starts check-alive thread and
+     * the forward server
+     */
+    public static void main(String[] args)
+            throws Exception
+    {
+        arguments = new Arguments();
+        arguments.setDefault("handshakeport", Integer.toString(DEFAULTSERVERPORT));
+        arguments.setDefault("handshakehost", DEFAULTSERVERHOST);
+        arguments.loadArguments(args);
+
+        ForwardServer srv = new ForwardServer();
+        try {
+            srv.startForwardServer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Starts the forward server - binds on a given port and starts serving
+     */
+    public void startForwardServer()
+    //throws IOException
+        throws Exception
+    {
+        // Bind server on given TCP port
+        int port = Integer.parseInt(arguments.get("handshakeport"));
+        try {
+            handshakeSocket = new ServerSocket(port);
+        } catch (IOException ioe) {
+           throw new IOException("Unable to bind to port " + port);
+        }
+
+        log("Nakov Forward Server started on TCP port " + port);
+ 
+        // Accept client connections and process them until stopped
+        while(true) {
+            ForwardServerClientThread forwardThread;
+           try {
+               doHandshake();
+               System.out.println("Handshake done!");
+               forwardThread = new ForwardServerClientThread(this.listenSocket, this.targetHost, this.targetPort);
+               forwardThread.start();
+           } catch (IOException e) {
+               throw e;
+           }
+        }
+    }
+
+    /**
+     * Do handshake negotiation with client to authenticate, learn
      * target host/port, etc.
      */
     private void doHandshake() throws Exception {
@@ -52,16 +101,11 @@ public class ForwardServer
         Logger.log("Incoming handshake connection from " + clientHostPort);
 
         /* This is where the handshake should take place */
-        HandshakeMessage clientHello = new HandshakeMessage();
-        clientHello.recv(clientSocket);
-
         // 2. receive a ClientHello
         //System.out.println("2. receive a ClientHello");
-        if (!clientHello.getParameter(MSGTYPE).equals(CLIENTHELLO)) {
-            System.err.println("Received invalid handshake type! - connection is Terminated");
-            clientSocket.close();
-            throw new Error();
-        }
+        HandshakeMessage clientHello = new HandshakeMessage();
+        clientHello.recv(clientSocket);
+        Handshake.checkMsgType(clientHello, CLIENTHELLO);
 
         // 3. verify certificate is signed by our CA
         //System.out.println("3. verify certificate is signed by our CA");
@@ -80,16 +124,10 @@ public class ForwardServer
         //System.out.println("8. receive a Forward msg");
         HandshakeMessage forwardMsg = new HandshakeMessage();
         forwardMsg.recv(clientSocket);
-
-        if (!forwardMsg.getParameter(MSGTYPE).equals(FORWARD)) {
-            System.err.println("Received invalid handshake type! - connection is Terminated");
-            clientSocket.close();
-            throw new Error();
-        }
+        Handshake.checkMsgType(forwardMsg, FORWARD);
 
         // setting the desired Target by the Client
         Handshake.targetHost = forwardMsg.getParameter(TARGET_HOST);
-        //System.out.println("debug target host: " + Handshake.targetHost);
         Handshake.targetPort =(Integer.parseInt(forwardMsg.getParameter(TARGET_PORT)));
 
         // 9. generate the session parameters
@@ -99,15 +137,14 @@ public class ForwardServer
         // Encrypt and encode session key
         SessionKey sessionKey = new SessionKey(KEYLENGTH);
         Handshake.sessionKey = sessionKey;
-        byte[] encryptedBytesKey = encryptSessionKey(sessionKey, clientPublicKey);
+        byte[] encryptedBytesKey = Handshake.encryptSessionKey(sessionKey, clientPublicKey);
         String encodedSessionKey = Base64.getEncoder().encodeToString(encryptedBytesKey);
         //System.out.println("Key to send: " + encodedSessionKey);
 
         // Encrypt and encode session IV
         SessionIV sessionIV = new SessionIV();
         Handshake.sessionIV = sessionIV;
-        System.out.println("debug: " + sessionIV);
-        byte[] encryptedBytesIV = encryptSessionIV(sessionIV, clientPublicKey);
+        byte[] encryptedBytesIV = Handshake.encryptSessionIV(sessionIV, clientPublicKey);
         String encodedSessionIV = Base64.getEncoder().encodeToString(encryptedBytesIV);
         //System.out.println("IV to send: " + encodedSessionIV);
 
@@ -119,18 +156,17 @@ public class ForwardServer
         sessionMsg.putParameter(SESSION_IV, encodedSessionIV);
         sessionMsg.send(clientSocket);
 
-        System.out.println("Server closing handshake with client");
         clientSocket.close();
 
         /*
-         * Fake the handshake result with static parameters. 
+         * Fake the handshake result with static parameters.
          */
 
-        /* listenSocket is a new socket where the ForwardServer waits for the 
+        /* listenSocket is a new socket where the ForwardServer waits for the
          * client to connect. The ForwardServer creates this socket and communicates
-         * the socket's address to the ForwardClient during the handshake, so that the 
+         * the socket's address to the ForwardClient during the handshake, so that the
          * ForwardClient knows to where it should connect (ServerHost/ServerPort parameters).
-         * Here, we use a static address instead (serverHost/serverPort). 
+         * Here, we use a static address instead (serverHost/serverPort).
          * (This may give "Address already in use" errors, but that's OK for now.)
          */
         listenSocket = new ServerSocket();
@@ -140,64 +176,8 @@ public class ForwardServer
          * between the listensocket (ie., ServerHost/ServerPort) and the target.
          */
         targetHost = Handshake.targetHost;
-        targetPort = Handshake.targetPort;        
-    }
-
-    private byte[] encryptSessionKey(SessionKey sessionKey, PublicKey publicKey) throws Exception {
-        String sessionKeyString = sessionKey.encodeKey();
-        byte[] sessionKeyBytes = sessionKeyString.getBytes(ENCODING);
-        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionKeyBytes, publicKey);
-
-        //System.out.println("sessionkey: " + sessionKeyString);
-        //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
-        //System.out.println("encrypted: " + encryptedSessionKey);
-
-        return encryptedBytes;
-    }
-
-    private byte[] encryptSessionIV(SessionIV sessionIV, PublicKey publicKey) throws Exception {
-        String sessionIvString = sessionIV.encodeIV();
-        byte[] sessionIvBytes = sessionIvString.getBytes(ENCODING);
-        byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionIvBytes, publicKey);
-
-        //System.out.println("sessionIV: " + sessionIvString);
-        //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
-        //System.out.println("encrypted: " + encryptedSessionKey);
-
-        return encryptedBytes;
-    }
-
-    /**
-     * Starts the forward server - binds on a given port and starts serving
-     */
-    public void startForwardServer()
-    //throws IOException
-        throws Exception
-    {
- 
-        // Bind server on given TCP port
-        int port = Integer.parseInt(arguments.get("handshakeport"));
-        try {
-            handshakeSocket = new ServerSocket(port);
-        } catch (IOException ioe) {
-           throw new IOException("Unable to bind to port " + port);
-        }
-
-        log("Nakov Forward Server started on TCP port " + port);
- 
-        // Accept client connections and process them until stopped
-        while(true) {
-            ForwardServerClientThread forwardThread;
-           try {
-
-               doHandshake();
-               System.out.println("Create a forwardThread");
-               forwardThread = new ForwardServerClientThread(this.listenSocket, this.targetHost, this.targetPort);
-               forwardThread.start();
-           } catch (IOException e) {
-               throw e;
-           }
-        }
+        targetPort = Handshake.targetPort;
+        log("Target: " + Handshake.targetHost + " : " + Handshake.targetPort);
     }
  
     /**
@@ -221,25 +201,5 @@ public class ForwardServer
         System.err.println(indent + "--cacert=<filename>");
         System.err.println(indent + "--key=<filename>");                
     }
-    
-    /**
-     * Program entry point. Reads settings, starts check-alive thread and
-     * the forward server
-     */
-    public static void main(String[] args)
-        throws Exception
-    {
-        arguments = new Arguments();
-        arguments.setDefault("handshakeport", Integer.toString(DEFAULTSERVERPORT));
-        arguments.setDefault("handshakehost", DEFAULTSERVERHOST);
-        arguments.loadArguments(args);
-        
-        ForwardServer srv = new ForwardServer();
-        try {
-           srv.startForwardServer();
-        } catch (Exception e) {
-           e.printStackTrace();
-        }
-    }
- 
+
 }
