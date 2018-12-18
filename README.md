@@ -19,7 +19,7 @@ $ java ForwardClient --handshakehost=<host>  --handshakeport=2206 --targethost=<
 ### Test the Program
 Netcat can be used to test the program.
 
-## On Windows
+#### On Windows
 1. Download [netcat](https://eternallybored.org/misc/netcat/)
 2. Open command prompt and cd to netcat path, then
  
@@ -32,7 +32,7 @@ $ nc.exe -vv -l -p XXXX
 $ nc.exe -vv <host> -p XXXX
 ```
 
-## On Mac and Linux
+#### On Mac and Linux
 Create a test server
 ```
 $ nc -l XXXX
