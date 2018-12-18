@@ -13,12 +13,12 @@ import java.util.Base64;
 
 public class ForwardClient
 {
-    static Integer KEYLENGTH = 128;
     private static final boolean ENABLE_LOGGING = true;
     public static final int DEFAULTSERVERPORT = 2206;
     public static final String DEFAULTSERVERHOST = "localhost";
     public static final String PROGRAMNAME = "ForwardClient";
 
+    private static final String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
     private static final String MSGTYPE = "MessageType";
     private static final String CERTIFCATE = "Certificate";
     private static final String CLIENTHELLO = "ClientHello";
@@ -34,8 +34,6 @@ public class ForwardClient
     private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     private static final String CA_CERT_PATH     =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
     private static final String CLIENT_PRIVATE_KEY =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
-
-    static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
 
     private static Arguments arguments;
     private static int serverPort;
@@ -69,6 +67,45 @@ public class ForwardClient
         }
     }
 
+    /*
+     * Set up client forwarder.
+     * Run handshake negotiation, then set up a listening socket and wait for user.
+     * When user has connected, start port forwarder thread.
+     */
+    static public void startForwardClient() throws Exception {
+
+        doHandshake();
+        log("Handshake done!");
+
+        // Wait for client. Accept one connection.
+
+        ForwardServerClientThread forwardThread;
+        ServerSocket listensocket;
+
+        try {
+            /* Create a new socket. This is to where the user should connect.
+             * ForwardClient sets up port forwarding between this socket
+             * and the ServerHost/ServerPort learned from the handshake */
+            listensocket = new ServerSocket();
+            /* Let the system pick a port number */
+            listensocket.bind(null);
+            /* Tell the user, so the user knows where to connect */
+            tellUser(listensocket);
+
+            Socket clientSocket = listensocket.accept();
+            String clientHostPort = clientSocket.getInetAddress().getHostAddress() + " : " + clientSocket.getPort();
+            log("Accepted client from " + clientHostPort);
+
+            forwardThread = new ForwardServerClientThread(clientSocket, serverHost, serverPort);
+            forwardThread.start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e);
+            throw e;
+        }
+    }
+
     private static void doHandshake() throws Exception {
         X509Certificate caCert = aCertificate.pathToCert(CA_CERT_PATH);
 
@@ -79,14 +116,14 @@ public class ForwardClient
         /* This is where the handshake should take place */
 
         // 1. Send ClientHello
-        System.out.println("1. Send ClientHello");
+        //System.out.println("1. Send ClientHello");
         HandshakeMessage clientHello = new HandshakeMessage();
         clientHello.putParameter(MSGTYPE, CLIENTHELLO);
         clientHello.putParameter(CERTIFCATE, aCertificate.encodeCert(aCertificate.pathToCert(CLIENT_CERT_PATH)));
         clientHello.send(socket);
 
         // 5. receive a ServerHello
-        System.out.println("5. receive a ServerHello");
+        //System.out.println("5. receive a ServerHello");
         HandshakeMessage serverHello = new HandshakeMessage();
         serverHello.recv(socket);
 
@@ -97,21 +134,22 @@ public class ForwardClient
         }
 
         // 6. Verify server certificate is signed by our CA
-        System.out.println("6. Verify server certificate is signed by our CA");
+        //System.out.println("6. Verify server certificate is signed by our CA");
         String serverCertString = clientHello.getParameter(CERTIFCATE);
         X509Certificate serverCert = aCertificate.stringToCert(serverCertString);
         aCertificate.verifyCertificate(serverCert, caCert.getPublicKey());
 
         // 7. send forward msg
-        System.out.println("7. send forward msg");
+        //System.out.println("7. send forward msg");
         HandshakeMessage forwardMessage = new HandshakeMessage();
         forwardMessage.putParameter(MSGTYPE, FORWARD);
         forwardMessage.putParameter(TARGET_HOST, arguments.get("targethost"));
         forwardMessage.putParameter(TARGET_PORT, arguments.get("targetport"));
+        System.out.println("Target: " + arguments.get("targethost") +":"+ arguments.get("targetport"));
         forwardMessage.send(socket);
 
         // 11. receive session msg
-        System.out.println("11. receive session msg");
+        //System.out.println("11. receive session msg");
         HandshakeMessage sessionMessage = new HandshakeMessage();
         sessionMessage.recv(socket);
 
@@ -129,7 +167,7 @@ public class ForwardClient
         byte[] encryptedKeyBytes = Base64.getDecoder().decode(encodedKeyString);
         byte[] decryptedKeyBytes = HandshakeCrypto.decrypt(encryptedKeyBytes, clientPrivateKey);
         String encodedSessionKey = new String(decryptedKeyBytes, ENCODING);
-        System.out.println("Sessionkey: " + encodedSessionKey);
+        //System.out.println("Sessionkey: " + encodedSessionKey);
         sessionKey = new SessionKey(encodedSessionKey);
 
         // decode and decrypt session IV
@@ -137,7 +175,8 @@ public class ForwardClient
         byte[] encryptedIvBytes = Base64.getDecoder().decode(encodedIvString);
         byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, clientPrivateKey);
         String encodedSessionIV = new String(decryptedBytes, ENCODING);
-        System.out.println("SessionIV: " + encodedSessionIV);
+        sessionIV = new SessionIV(encodedSessionIV);
+        //System.out.println("SessionIV: " + encodedSessionIV);
 
         System.out.println("Client close handshake");
         socket.close();
@@ -153,7 +192,9 @@ public class ForwardClient
          * Here, we use a static address instead. 
          */
         serverHost = Handshake.serverHost;
-        serverPort = Handshake.serverPort;        
+        serverPort = Handshake.serverPort;
+        log("ServerHost : serverPort --- " + serverHost + " : " + serverPort);
+        log("TargetHost : TargetPort --- " + Handshake.targetHost + " : " + Handshake.targetPort);
     }
 
     /*
@@ -162,45 +203,7 @@ public class ForwardClient
     private static void tellUser(ServerSocket listensocket) throws UnknownHostException {
         System.out.println("Client forwarder to target " + arguments.get("targethost") + ":" + arguments.get("targetport"));
         System.out.println("Waiting for incoming connections at " +
-                           InetAddress.getLocalHost().getHostAddress() + ":" + listensocket.getLocalPort());
-    }
-        
-    /*
-     * Set up client forwarder.
-     * Run handshake negotiation, then set up a listening socket and wait for user.
-     * When user has connected, start port forwarder thread.
-     */
-    static public void startForwardClient() throws Exception {
-
-        doHandshake();
-
-        // Wait for client. Accept one connection.
-
-        ForwardServerClientThread forwardThread;
-        ServerSocket listensocket;
-        
-        try {
-            /* Create a new socket. This is to where the user should connect.
-             * ForwardClient sets up port forwarding between this socket
-             * and the ServerHost/ServerPort learned from the handshake */
-            listensocket = new ServerSocket();
-            /* Let the system pick a port number */
-            listensocket.bind(null); 
-            /* Tell the user, so the user knows where to connect */ 
-            tellUser(listensocket);
-
-            Socket clientSocket = listensocket.accept();
-            String clientHostPort = clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
-            log("Accepted client from " + clientHostPort);
-            
-            forwardThread = new ForwardServerClientThread(clientSocket, serverHost, serverPort);
-            forwardThread.start();
-            
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println(e);
-            throw e;
-        }
+                           InetAddress.getLocalHost().getHostAddress() + " : " + listensocket.getLocalPort());
     }
 
     /**

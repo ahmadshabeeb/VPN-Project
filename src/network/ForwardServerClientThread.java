@@ -67,7 +67,6 @@ public class ForwardServerClientThread extends Thread
                mClientSocket = mListenSocket.accept();
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
                Logger.log("Accepted from  " + mServerPort + " <--> " + mClientHostPort + "  started.");
-               
            }
            else {
                mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
@@ -77,16 +76,19 @@ public class ForwardServerClientThread extends Thread
                mServerSocket = new Socket(mServerHost, mServerPort);
            } catch (Exception e) {
                System.out.println("Connection failed to " + mServerHost + ":" + mServerPort);
-               e.printStackTrace(); 
+               e.printStackTrace();
                // Prints what exception has been thrown 
                System.out.println(e); 
            }
 
            // Obtain input and output streams of server and client
+            System.out.println("STREAMS");
            InputStream clientIn = mClientSocket.getInputStream();
            OutputStream clientOut = mClientSocket.getOutputStream();
            InputStream serverIn = mServerSocket.getInputStream();
            OutputStream serverOut = mServerSocket.getOutputStream();
+
+            System.out.println("clientin" + clientIn);
 
            mServerHostPort = mServerHost + ":" + mServerPort;
            Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");

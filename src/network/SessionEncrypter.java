@@ -13,14 +13,12 @@ public class SessionEncrypter {
     private byte[] iv;
     private IvParameterSpec ivParameterSpec;
 
-    public SessionEncrypter(Integer KeyLength) throws Exception {
-        sessionKey = new SessionKey(KeyLength);
-    }
+    public SessionEncrypter(Integer KeyLength) throws Exception {}
 
 
-    public SessionEncrypter( SessionKey sessionKey, IvParameterSpec ivParameterSpec) {
+    public SessionEncrypter( SessionKey sessionKey, SessionIV sessionIV) {
         this.sessionKey = sessionKey;
-        this.ivParameterSpec = ivParameterSpec;
+        this.ivParameterSpec = sessionIV.getSessionIV();
     }
 
     public String encodeKey() {

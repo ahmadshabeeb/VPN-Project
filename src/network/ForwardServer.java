@@ -19,9 +19,8 @@ public class ForwardServer
     public static final String PROGRAMNAME = "ForwardServer";
     private static Arguments arguments;
 
-    static Integer KEYLENGTH = 128;
-    static String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
-
+    private static final Integer KEYLENGTH = 128;
+    private static final String ENCODING = "UTF-8"; /* For converting between strings and byte arrays */
     private static final String MSGTYPE = "MessageType";
     private static final String CERTIFCATE = "Certificate";
     private static final String CLIENTHELLO = "ClientHello";
@@ -32,7 +31,6 @@ public class ForwardServer
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
-
     private static final String SERVER_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server.pem";
     private static final String CA_CERT_PATH =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
     private static final String SERVER_PRIVATE_KEY =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\server-private.der";
@@ -41,6 +39,8 @@ public class ForwardServer
     private ServerSocket listenSocket;
     private String targetHost;
     private int targetPort;
+    private SessionKey sessionKey;
+    private SessionIV sessionIV;
     
     /**
      * Do handshake negotiation with client to authenticate, learn 
@@ -58,7 +58,7 @@ public class ForwardServer
         clientHello.recv(clientSocket);
 
         // 2. receive a ClientHello
-        System.out.println("2. receive a ClientHello");
+        //System.out.println("2. receive a ClientHello");
         if (!clientHello.getParameter(MSGTYPE).equals(CLIENTHELLO)) {
             System.err.println("Received invalid handshake type! - connection is Terminated");
             clientSocket.close();
@@ -66,20 +66,20 @@ public class ForwardServer
         }
 
         // 3. verify certificate is signed by our CA
-        System.out.println("3. verify certificate is signed by our CA");
+        //System.out.println("3. verify certificate is signed by our CA");
         String clientCertString = clientHello.getParameter(CERTIFCATE);
         X509Certificate clientCert = aCertificate.stringToCert(clientCertString);
         aCertificate.verifyCertificate(clientCert, caCert.getPublicKey());
 
         // 4. Send Server Hello
-        System.out.println("4. Send Server Hello");
+        //System.out.println("4. Send Server Hello");
         HandshakeMessage serverHello = new HandshakeMessage();
         serverHello.putParameter(MSGTYPE, SERVERTHELLO);
         serverHello.putParameter(CERTIFCATE, aCertificate.encodeCert(aCertificate.pathToCert(SERVER_CERT_PATH)));
         serverHello.send(clientSocket);
 
         // 8. receive a Forward msg
-        System.out.println("8. receive a Forward msg");
+        //System.out.println("8. receive a Forward msg");
         HandshakeMessage forwardMsg = new HandshakeMessage();
         forwardMsg.recv(clientSocket);
 
@@ -90,27 +90,28 @@ public class ForwardServer
         }
 
         // setting the desired Target by the Client
-        Handshake.setTargetHost(forwardMsg.getParameter(TARGET_HOST));
-        Handshake.setTargetPort(Integer.parseInt(forwardMsg.getParameter(TARGET_PORT)));
+        Handshake.targetHost = forwardMsg.getParameter(TARGET_HOST);
+        System.out.println("debug target host: " + Handshake.targetHost);
+        Handshake.targetPort =(Integer.parseInt(forwardMsg.getParameter(TARGET_PORT)));
 
-        // 9. generate the session
-        System.out.println("9. generate the session");
+        // 9. generate the session parameters
+        //System.out.println("9. generate the session");
         PublicKey clientPublicKey = clientCert.getPublicKey();
 
         // Encrypt and encode session key
-        SessionKey sessionKey = new SessionKey(KEYLENGTH);
+        sessionKey = new SessionKey(KEYLENGTH);
         byte[] encryptedBytesKey = encryptSessionKey(sessionKey, clientPublicKey);
         String encodedSessionKey = Base64.getEncoder().encodeToString(encryptedBytesKey);
         //System.out.println("Key to send: " + encodedSessionKey);
 
         // Encrypt and encode session IV
-        SessionIV sessionIV = new SessionIV();
+        sessionIV = new SessionIV();
         byte[] encryptedBytesIV = encryptSessionIV(sessionIV, clientPublicKey);
         String encodedSessionIV = Base64.getEncoder().encodeToString(encryptedBytesIV);
         //System.out.println("IV to send: " + encodedSessionIV);
 
         // 10. send session msg
-        System.out.println("10. send session msg");
+        //System.out.println("10. send session msg");
         HandshakeMessage sessionMsg = new HandshakeMessage();
         sessionMsg.putParameter(MSGTYPE, SESSION );
         sessionMsg.putParameter(SESSION_KEY, encodedSessionKey);
@@ -146,7 +147,7 @@ public class ForwardServer
         byte[] sessionKeyBytes = sessionKeyString.getBytes(ENCODING);
         byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionKeyBytes, publicKey);
 
-        System.out.println("sessionkey: " + sessionKeyString);
+        //System.out.println("sessionkey: " + sessionKeyString);
         //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
         //System.out.println("encrypted: " + encryptedSessionKey);
 
@@ -158,7 +159,7 @@ public class ForwardServer
         byte[] sessionIvBytes = sessionIvString.getBytes(ENCODING);
         byte[] encryptedBytes = HandshakeCrypto.encrypt(sessionIvBytes, publicKey);
 
-        System.out.println("sessionIV: " + sessionIvString);
+        //System.out.println("sessionIV: " + sessionIvString);
         //String encryptedSessionKey = new String(encryptedBytes, ENCODING);
         //System.out.println("encrypted: " + encryptedSessionKey);
 
@@ -189,7 +190,7 @@ public class ForwardServer
            try {
 
                doHandshake();
-
+               System.out.println("Create a forwardThread");
                forwardThread = new ForwardServerClientThread(this.listenSocket, this.targetHost, this.targetPort);
                forwardThread.start();
            } catch (IOException e) {

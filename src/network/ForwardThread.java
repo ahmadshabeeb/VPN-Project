@@ -44,6 +44,9 @@ private static final int READ_BUFFER_SIZE = 8192;
                 int bytesRead = mInputStream.read(buffer);
                 if (bytesRead == -1)
                     break; // End of stream is reached --> exit the thread
+                System.out.println("forwarded data: " + bytesRead );
+                System.out.println(new String(buffer, "UTF-8"));
+                System.out.println(mOutputStream);
                 mOutputStream.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
