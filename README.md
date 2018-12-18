@@ -11,7 +11,7 @@ Run the forwardServer:
 $ java ForwardServer --handshakeport=2206 --usercert=server.pem--cacert=ca.pem --key=server-private.der
 ```
    
-Run the forwardServer:
+Run the forwardClient:
 ```
 $ java ForwardClient --handshakehost=<host>  --handshakeport=2206 --targethost=<host> --targetport=6789 --usercert=client.pem --cacert=ca.pem --key=client-private.der
 ```
