@@ -23,21 +23,21 @@ Netcat can be used to test the program.
 1. Download [netcat](https://eternallybored.org/misc/netcat/)
 2. Open command prompt and cd to netcat path, then
  
-Create a test server
+3. Create a test server
 ```
 $ nc.exe -vv -l -p XXXX
 ```
-- Create a test client
+4. Create a test client
 ```
 $ nc.exe -vv <host> -p XXXX
 ```
 
 #### On Mac and Linux
-Create a test server
+1. Create a test server
 ```
 $ nc -l XXXX
 ```
-- Create a test client
+2. Create a test client
 ```
 $ nc <host> XXXX
 ```
