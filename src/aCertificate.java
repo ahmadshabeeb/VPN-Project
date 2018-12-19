@@ -35,13 +35,15 @@ public class aCertificate {
         try {
             cer.checkValidity();
         } catch (Exception e) {
-            System.out.println("Certificate expired");
+            System.out.println("Certificate expired!" + cer.getSubjectDN());
             e.printStackTrace();
         }
 
         try {
             cer.verify(publicKey);
         } catch (Exception e) {
+            System.out.println("Error! Could not verify certificate with the given public key \n" +
+                            cer.getSubjectDN());
             e.printStackTrace();
         }
         return true;

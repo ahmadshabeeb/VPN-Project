@@ -26,6 +26,9 @@ public class ForwardServer
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
+    private static final String SERVER_HOST = "ServerHost";
+    private static final String SERVER_PORT = "ServerPort";
+
     private static final String CURRENT_DIRECTORY  = System.getProperty("user.dir") + "\\src\\";
 
     private ServerSocket handshakeSocket;
@@ -165,6 +168,8 @@ public class ForwardServer
         sessionMsg.putParameter(MSGTYPE, SESSION );
         sessionMsg.putParameter(SESSION_KEY, encodedSessionKey);
         sessionMsg.putParameter(SESSION_IV, encodedSessionIV);
+        sessionMsg.putParameter(SERVER_HOST, Handshake.serverHost);
+        sessionMsg.putParameter(SERVER_PORT, Integer.toString(Handshake.serverPort));
         sessionMsg.send(clientSocket);
 
         clientSocket.close();

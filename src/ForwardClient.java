@@ -25,6 +25,9 @@ public class ForwardClient
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
+    private static final String SERVER_HOST = "ServerHost";
+    private static final String SERVER_PORT = "ServerPort";
+
     private static final String CURRENT_DIRECTORY  = System.getProperty("user.dir") + "\\src\\";
 
     private static Arguments arguments;
@@ -155,6 +158,9 @@ public class ForwardClient
         HandshakeMessage sessionMessage = new HandshakeMessage();
         sessionMessage.recv(socket);
         Handshake.checkMsgType(sessionMessage, SESSION);
+        //Handshake.serverHost = sessionMessage.getParameter(SERVER_HOST);
+        //Handshake.serverPort = sessionMessage.getParameter(SERVER_PORT)
+
 
         // 12. get session parameters
         // decode and decrypt session key
