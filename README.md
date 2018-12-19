@@ -29,7 +29,7 @@ $ nc.exe -vv -l -p XXXX
 ```
 4. Create a test client
 ```
-$ nc.exe -vv <host> -p XXXX
+$ nc.exe -vv <host> XXXX
 ```
 
 #### On Mac and Linux
