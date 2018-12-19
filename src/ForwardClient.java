@@ -25,8 +25,7 @@ public class ForwardClient
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
-
-    private static final String CURRENT_DIRECTORY  =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\";
+    private static final String CURRENT_DIRECTORY  = System.getProperty("user.dir") + "\\src\\";
 
     private static Arguments arguments;
     private static int serverPort;
@@ -42,6 +41,7 @@ public class ForwardClient
      */
     public static void main(String[] args) throws Exception
     {
+        System.out.println(CURRENT_DIRECTORY);
         try {
             arguments = new Arguments();
             arguments.setDefault("handshakeport", Integer.toString(DEFAULTSERVERPORT));

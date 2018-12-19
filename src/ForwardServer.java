@@ -26,7 +26,7 @@ public class ForwardServer
     private static final String SESSION_IV = "SessionIV";
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
-    private static final String CURRENT_DIRECTORY = "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\";
+    private static final String CURRENT_DIRECTORY  = System.getProperty("user.dir") + "\\src\\";
 
     private ServerSocket handshakeSocket;
     private ServerSocket listenSocket;
