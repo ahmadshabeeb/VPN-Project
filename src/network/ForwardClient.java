@@ -30,19 +30,21 @@ public class ForwardClient
     private static final String TARGET_HOST = "TargetHost";
     private static final String TARGET_PORT = "TargetPort";
 
-    private static final String CLIENT_CERT_PATH    =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client.pem";
-    private static final String CA_CERT_PATH        =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\ca.pem";
-    private static final String CLIENT_PRIVATE_KEY  =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\client-private.der";
+    private static final String CURRENT_DIRECTORY  =  "C:\\Users\\Ahmad\\Desktop\\vpn-project\\src\\certs\\";
 
     private static Arguments arguments;
     private static int serverPort;
     private static String serverHost;
 
+    private static X509Certificate caX509Cert;
+    private static X509Certificate clientX509Cert;
+    private static PrivateKey privateKey;
+
     /**
      * Program entry point. Reads arguments and run
      * the forward server
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws Exception
     {
         try {
             arguments = new Arguments();
@@ -52,6 +54,20 @@ public class ForwardClient
             if (arguments.get("targetport") == null || arguments.get("targethost") == null) {
                 throw new IllegalArgumentException("Target not specified");
             }
+
+            // get and validate CA certificate
+            String caCert = arguments.get("cacert");
+            caX509Cert = aCertificate.pathToCert(CURRENT_DIRECTORY + caCert);
+            aCertificate.verifyCertificate(caX509Cert, caX509Cert.getPublicKey());
+
+            // get and validate CA certificate
+            String serverCert = arguments.get("usercert");
+            clientX509Cert = aCertificate.pathToCert(CURRENT_DIRECTORY + serverCert);
+            aCertificate.verifyCertificate(clientX509Cert, caX509Cert.getPublicKey());
+
+            String clientPrivateKey = arguments.get("key");
+            privateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(CURRENT_DIRECTORY + clientPrivateKey);
+
         } catch(IllegalArgumentException ex) {
             System.out.println(ex);
             usage();
@@ -104,7 +120,6 @@ public class ForwardClient
     }
 
     private static void doHandshake() throws Exception {
-        X509Certificate caCert = aCertificate.pathToCert(CA_CERT_PATH);
 
         /* Connect to forward server server */
         System.out.println("Connect to " +  arguments.get("handshakehost") + ":" + Integer.parseInt(arguments.get("handshakeport")));
@@ -116,7 +131,7 @@ public class ForwardClient
         //System.out.println("1. Send ClientHello");
         HandshakeMessage clientHello = new HandshakeMessage();
         clientHello.putParameter(MSGTYPE, CLIENTHELLO);
-        clientHello.putParameter(CERTIFCATE, aCertificate.encodeCert(aCertificate.pathToCert(CLIENT_CERT_PATH)));
+        clientHello.putParameter(CERTIFCATE, aCertificate.encodeCert(clientX509Cert));
         clientHello.send(socket);
 
         // 5. receive a ServerHello
@@ -129,7 +144,7 @@ public class ForwardClient
         //System.out.println("6. Verify server certificate is signed by our CA");
         String serverCertString = clientHello.getParameter(CERTIFCATE);
         X509Certificate serverCert = aCertificate.stringToCert(serverCertString);
-        aCertificate.verifyCertificate(serverCert, caCert.getPublicKey());
+        aCertificate.verifyCertificate(serverCert, caX509Cert.getPublicKey());
 
         // 7. send forward msg
         //System.out.println("7. send forward msg");
@@ -146,12 +161,10 @@ public class ForwardClient
         Handshake.checkMsgType(sessionMessage, SESSION);
 
         // 12. get session parameters
-        PrivateKey clientPrivateKey = HandshakeCrypto.getPrivateKeyFromKeyFile(CLIENT_PRIVATE_KEY);
-
         // decode and decrypt session key
         String encodedKeyString = sessionMessage.getParameter(SESSION_KEY);
         byte[] encryptedKeyBytes = Base64.getDecoder().decode(encodedKeyString);
-        byte[] decryptedKeyBytes = HandshakeCrypto.decrypt(encryptedKeyBytes, clientPrivateKey);
+        byte[] decryptedKeyBytes = HandshakeCrypto.decrypt(encryptedKeyBytes, privateKey);
         String encodedSessionKey = new String(decryptedKeyBytes, ENCODING);
         //System.out.println("Sessionkey: " + encodedSessionKey);
         Handshake.sessionKey = new SessionKey(encodedSessionKey);
@@ -159,7 +172,7 @@ public class ForwardClient
         // decode and decrypt session IV
         String encodedIvString = sessionMessage.getParameter(SESSION_IV);
         byte[] encryptedIvBytes = Base64.getDecoder().decode(encodedIvString);
-        byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, clientPrivateKey);
+        byte[] decryptedBytes = HandshakeCrypto.decrypt(encryptedIvBytes, privateKey);
         String encodedSessionIV = new String(decryptedBytes, ENCODING);
         Handshake.sessionIV = new SessionIV(encodedSessionIV);
         //System.out.println("SessionIV: " + encodedSessionIV);
@@ -171,11 +184,11 @@ public class ForwardClient
          * Fake the handshake result with static parameters.
          */
 
-        /* This is to where the ForwardClient should connect. 
+        /* This is to where the ForwardClient should connect.
          * The ForwardServer creates a socket
          * dynamically and communicates the address (hostname and port number)
          * to ForwardClient during the handshake (ServerHost, ServerPort parameters).
-         * Here, we use a static address instead. 
+         * Here, we use a static address instead.
          */
         serverHost = Handshake.serverHost;
         serverPort = Handshake.serverPort;
@@ -189,7 +202,7 @@ public class ForwardClient
     private static void tellUser(ServerSocket listensocket) throws UnknownHostException {
         System.out.println("Client forwarder to target " + arguments.get("targethost") + ":" + arguments.get("targetport"));
         System.out.println("Waiting for incoming connections at " +
-                           InetAddress.getLocalHost().getHostAddress() + " : " + listensocket.getLocalPort());
+                InetAddress.getLocalHost().getHostAddress() + " : " + listensocket.getLocalPort());
     }
 
     /**
@@ -199,21 +212,21 @@ public class ForwardClient
     public static void log(String aMessage)
     {
         if (ENABLE_LOGGING)
-           System.out.println(aMessage);
+            System.out.println(aMessage);
     }
- 
+
     static void usage() {
         String indent = "";
         System.err.println(indent + "Usage: " + PROGRAMNAME + " options");
         System.err.println(indent + "Where options are:");
         indent += "    ";
         System.err.println(indent + "--targethost=<hostname>");
-        System.err.println(indent + "--targetport=<portnumber>");        
+        System.err.println(indent + "--targetport=<portnumber>");
         System.err.println(indent + "--handshakehost=<hostname>");
-        System.err.println(indent + "--handshakeport=<portnumber>");        
+        System.err.println(indent + "--handshakeport=<portnumber>");
         System.err.println(indent + "--usercert=<filename>");
         System.err.println(indent + "--cacert=<filename>");
-        System.err.println(indent + "--key=<filename>");                
+        System.err.println(indent + "--key=<filename>");
     }
 
 }
